@@ -3,8 +3,13 @@ import subprocess, re, datetime, sys
 
 execfile("config.py")
 
-if len(sys.argv) < 2 or len(sys.argv) > 3:
-    print "Invalid command line params"
+if len(sys.argv) < 2 or len(sys.argv) > 3 or not re.match("^[a-z0-9-.]+\.[a-z]+", sys.argv[1]):
+    if len(sys.argv) > 3: print "Invalid command line params\n"
+    print "Usage: %s DOMAIN [TOKEN]" % sys.argv[0]
+    print "   DOMAIN   the domain name to validate"
+    print "   TOKEN    (optional) a validation token from a previous"
+    print "            validation process"
+    print ""
     sys.exit(5)
 
 val_type = "domain" #could be email or sth. similar?
@@ -56,6 +61,7 @@ if len(sys.argv) == 2:
         sys.exit(3)
 
 if len(sys.argv) == 3:
+    if not sys.argv[2].isdigit(): sys.exit("Invalid command line params: TOKEN must be numeric")
     token2 = sys.argv[2]
 
 code = raw_input("Validation Code from email: ")
