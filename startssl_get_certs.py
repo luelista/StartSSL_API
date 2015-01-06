@@ -1,44 +1,82 @@
 #!/usr/bin/python
-import subprocess, re, datetime
+import subprocess, re, datetime, json, os.path, sys
 
 execfile("config.py")
 
-RETRIEVE_CERTIFICATE_LIST = re.compile(
-    '<option value=\\\\"(?P<id>\d+)\\\\" style=\\\\"background-color: #(?P<color>[0-9A-F]{6});\\\\">(?P<name>.+?) \((?P<profile_description>[\w/]+?) - (?P<class>[\w\d ]+?) - (?P<expires_year>\d{4})-(?P<expires_month>\d{2})-(?P<expires_day>\d{2})\)</option>',
-    re.UNICODE)
+def main():
+    if len(sys.argv) == 2 and sys.argv[1].isdigit():
+        download_cert(sys.argv[1])
+        sys.exit()
 
-#curl -b $(cat startssl_cookie.txt) https://www.startssl.com -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -iv
+    if os.path.isfile("cert_list.json") and len(sys.argv) == 1:
+        print "NOTE: this is a cached version"
+        print_cert_list()
+        sys.exit()
 
-auth_command = "curl -b $(cat startssl_cookie.txt) -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -s \"%s\"" % (STARTSSL_BASEURI)
-output = subprocess.check_output(auth_command, shell=True)
 
-items = RETRIEVE_CERTIFICATE_LIST.finditer(output)
-certs = []
-for item in items:
-    cert = item.groupdict()
+    update_cert_list()
+    print_cert_list()
 
-    # convert expire date
-    cert['expires'] = datetime.date(int(cert['expires_year']), int(cert['expires_month']), int(cert['expires_day']))
 
-    # convert id to integer
-    cert['id'] = int(cert['id'])
 
-    cert['profile'] = cert['profile_description']
+def print_cert_list():
+    with open('cert_list.json', 'r') as infile:
+        certs = json.loads(infile.read())
     
-    # set retrieved state depending on the background color
-    if cert['color'] == "FFFFFF":
-        cert['retrieved'] = True
-    else:  # if color = rgb(201, 255, 196)
-        cert['retrieved'] = False
-    del cert['color']
+    print "New | Identifier | Common Name                   | Profile | Class     | Expiry Date |"
+    FORMAT = " {new:<2s} | {id:10d} | {name:<30s}| {profile:<8s}| {class:<10s}| {expires}  |"
 
-    certs.append(cert)
+    for cert in certs:
+        print FORMAT.format(**cert)
+
+def download_cert(identifier):
+    fetch_command = "curl -b $(cat startssl_cookie.txt) -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -d 'rsargs[]=%s' -s \"%s\"" % (identifier, STARTSSL_BASEURI)
+    output = subprocess.check_output(fetch_command, shell=True)
+    
+    REQUEST_CERTIFICATE_CERT = re.compile('<textarea.*?>(?P<certificate>.*?)</textarea>')
+    
+    m = REQUEST_CERTIFICATE_CERT.search(output)
+    if m:
+        print m.group("certificate").replace("\\n", "\n")
+        
 
 
-FORMAT = "{name}, {profile}, {class}, expires: {expires}, retrieved: {retrieved}, id: {id}"
+def update_cert_list():
+    RETRIEVE_CERTIFICATE_LIST = re.compile(
+        '<option value=\\\\"(?P<id>\d+)\\\\" style=\\\\"background-color: #(?P<color>[0-9A-F]{6});\\\\">(?P<name>.+?) \((?P<profile_description>[\w/]+?) - (?P<class>[\w\d ]+?) - (?P<expires_year>\d{4})-(?P<expires_month>\d{2})-(?P<expires_day>\d{2})\)</option>',
+        re.UNICODE)
 
-for cert in certs:
-    print FORMAT.format(**cert)
+    #curl -b $(cat startssl_cookie.txt) https://www.startssl.com -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -iv
+
+    auth_command = "curl -b $(cat startssl_cookie.txt) -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -s \"%s\"" % (STARTSSL_BASEURI)
+    output = subprocess.check_output(auth_command, shell=True)
+
+    items = RETRIEVE_CERTIFICATE_LIST.finditer(output)
+    certs = []
+    for item in items:
+        cert = item.groupdict()
+
+        # convert expire date
+        cert['expires'] = str(datetime.date(int(cert['expires_year']), int(cert['expires_month']), int(cert['expires_day'])))
+
+        # convert id to integer
+        cert['id'] = int(cert['id'])
+
+        cert['profile'] = cert['profile_description']
+    
+        # set retrieved state depending on the background color
+        if cert['color'] == "FFFFFF":
+            cert['retrieved'] = True
+            cert['new'] = ''
+        else:  # if color = rgb(201, 255, 196)
+            cert['retrieved'] = False
+            cert['new'] = '*'
+        del cert['color']
+
+        certs.append(cert)
+    
+    with open('cert_list.json', 'w') as outfile:
+        outfile.write(json.dumps(certs))
 
 
-
+main()
