@@ -3,6 +3,10 @@ StartSSL_API
 
 A python/CLI API for some StartCom StartSSL functions
 
+## Install
+
+Symlink the `startssl` script into your path.
+
 ## Authentication
 
 To authenticate you need your StartSSL client certificate.
@@ -11,19 +15,19 @@ You may want to modify the `CERTFILE` in config.py to point to your client certi
 
 After that, run this command to log in:
 ```
-./startssl_auth.py
+./startssl auth
 ```
 
 ## Domain Validation
 
 To see a list of all domains you have validated in your account, run:
 ```
-./startssl_get_valids.py
+./startssl validate
 ```
 
 To start validation process of another domain, for the domain **example.com** do this:
 ```
-./startssl_validate.py example.com
+./startssl validate example.com
 ```
 
 It will ask if you are sure to run validation. Answer with 'y'.
@@ -34,13 +38,13 @@ Note: At the moment it is not possible to choose the mail address, the first one
 
 If the script is cancelled in between, run it again with the previously displayed token, like this:
 ```
-./startssl_validate.py example.com 1234567
+./startssl validate example.com 1234567
 ```
 
 ### Example session transcript:
 
 ```
-➜  StartSSL_API git:(master) ✗ ./startssl_validate.py luelistan.net
+➜  StartSSL_API git:(master) ✗ ./startssl validate luelistan.net
 Going to start validatation process for domain "luelistan.net"
 Continue? y
 Validation session: 4534049
@@ -64,32 +68,19 @@ some-subdomain.example.org
 
 Afterwards, run:
 ```
-./startssl_certify.py somename
+./startssl certify somename
 ```
 
 If the file somename_privatekey.pem does not exist, a new 4096-bit RSA private key will be generated. The CSR will be generated automatically from the private key and uploaded to startssl. If a certificate is returned by startssl, it is stored as somename_cert.pem. If it is withheld for manual approval, you can retrieve it later like this:
 
 ```
-./startssl_get_certs.py
+./startssl getcerts
 ```
 Displays a list of all your certificates, first column is the ID.
 
 
 ```
-./startssl_get_certs.py 1234567 > somename_cert.py
+./startssl getcerts 1234567 > somename_cert.py
 ```
 to download it
 
-
-
-## Usage
-* Place startssl.conf in /etc or your current working directory
-* Adjust the settings in startssl.conf
-* Show all available certificates:
-  * `startssl.py certs`
-* Download a specific certificate
-  * `startssl.py certs example.com`
-* Download all new and missing certificates
-  * `startssl.py certs --store new --store missing`
-* Submit CSR files
-  * `startssl.py csr example.com.csr mail.example.com.csr`

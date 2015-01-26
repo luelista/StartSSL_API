@@ -8,4 +8,21 @@ EXECUTABLE=$STARTSSL_API_PATH"startssl_"$COMMAND".py"
 
 if [[ -e $EXECUTABLE ]]; then
 	$PYTHON $EXECUTABLE ${@:2}
+else
+     	echo Usage:  $0 COMMAND [args]
+     	echo   
+     	echo "Commands:"
+	echo "  auth"
+	echo "      Request an authentication token"
+	echo "  validate"
+	echo "      If run without arguments, it prints all your validated domains"
+	echo "  validate DOMAIN"
+	echo "      Ask startssl to send you a validation code"
+	echo "  validate DOMAIN CODE"
+	echo "      Enter the validation code you received"
+	echo "  getcerts"
+	echo "  getcerts ID"
+	echo "  certify CERTNAME"
+	echo "" 
+
 fi
