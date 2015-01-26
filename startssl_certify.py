@@ -2,13 +2,22 @@
 import subprocess, re, datetime, sys, os.path, tempfile
 import urllib
 
-execfile("config.py")
+scriptPath = os.path.dirname(os.path.realpath(sys.argv[0]))
+execfile(scriptPath+"/config.py")
 
+with open(scriptPath+'/startssl_cookie.txt', 'r') as infile:
+    cookie = infile.read()
+
+def startssl_request(params):
+    curl_command = "curl -b \"%s\" --data '%s' -s \"%s\"" % (cookie, urllib.urlencode(params), STARTSSL_BASEURI)
+    return subprocess.check_output(curl_command, shell=True)
+
+now = datetime.datetime.now()
 
 if len(sys.argv) == 2:
-    privkey_file = sys.argv[1] + "_privatekey.pem"
+    privkey_file = sys.argv[1] + "_privatekey_%s.pem" % (now.strftime("%y%m%d"))
     domainlist_file = sys.argv[1] + "_domains.txt"
-    cert_file = sys.argv[1] + "_cert.pem"
+    cert_file = sys.argv[1] + "_cert_%s.pem" % (now.strftime("%y%m%d"))
 elif len(sys.argv) == 4:
     privkey_file = sys.argv[1]
     domainlist_file = sys.argv[2]
@@ -31,6 +40,7 @@ tempcsr = tempfile.mktemp(".csr")
 os.system("openssl req -new -key \"%s\" -out \"%s\" -batch" % (privkey_file, tempcsr))
 
 print "CSR path: ", tempcsr
+print "Certificate: ", cert_file
 
 with open(tempcsr, 'r') as content_file:
     csr_content = content_file.read()
@@ -48,8 +58,7 @@ CERT_TOKEN = re.compile(r"x_third_step_certs\(\\'([a-z]+)\\',\\'([0-9]+)\\',")
 
 params = [('app',12), ('rs','second_step_certs'), ('rst',''),
             ('rsargs[]', cert_type), ('rsargs[]', csr_content)]
-curl_command = "curl -b \"$(cat startssl_cookie.txt)\" --data '%s' -s \"%s\"" % (urllib.urlencode(params), STARTSSL_BASEURI)
-output = subprocess.check_output(curl_command, shell=True)
+output = startssl_request(params)
 
 tokens = CERT_TOKEN.search(output)
 if tokens:
@@ -68,8 +77,7 @@ VALID_DOMAINS = re.compile('option value=\\\\"([a-zA-Z0-9._-]+)\\\\"')
 
 params = [('app',12), ('rs','third_step_certs'), ('rst',''),
             ('rsargs[]', cert_type), ('rsargs[]', token2), ('rsargs[]', '')]
-curl_command = "curl -b \"$(cat startssl_cookie.txt)\" --data '%s' -s \"%s\"" % (urllib.urlencode(params), STARTSSL_BASEURI)
-output = subprocess.check_output(curl_command, shell=True)
+output = startssl_request(params)
 
 valid_domains = VALID_DOMAINS.findall(output)
 #for i, adr in enumerate(valid_domains):
@@ -98,14 +106,12 @@ print "Sub:",sub_domains
 for domain in top_domains:
     params = [('app',12), ('rs','fourth_step_certs'), ('rst',''),
                 ('rsargs[]', cert_type), ('rsargs[]', token2), ('rsargs[]', domain), ('rsargs[]', '')]
-    curl_command = "curl -b \"$(cat startssl_cookie.txt)\" --data '%s' -s \"%s\"" % (urllib.urlencode(params), STARTSSL_BASEURI)
-    output = subprocess.check_output(curl_command, shell=True)
+    output = startssl_request(params)
 
 for domain in sub_domains:
     params = [('app',12), ('rs','fourth_step_certs'), ('rst',''),
                 ('rsargs[]', cert_type), ('rsargs[]', token2), ('rsargs[]', ''), ('rsargs[]', domain)]
-    curl_command = "curl -b \"$(cat startssl_cookie.txt)\" --data '%s' -s \"%s\"" % (urllib.urlencode(params), STARTSSL_BASEURI)
-    output = subprocess.check_output(curl_command, shell=True)
+    output = startssl_request(params)
 
 
 
@@ -113,8 +119,7 @@ for domain in sub_domains:
 
 params = [('app',12), ('rs','fifth_step_certs'), ('rst',''),
             ('rsargs[]', cert_type), ('rsargs[]', token2), ('rsargs[]', ''), ('rsargs[]', '')]
-curl_command = "curl -b \"$(cat startssl_cookie.txt)\" --data '%s' -s \"%s\"" % (urllib.urlencode(params), STARTSSL_BASEURI)
-output = subprocess.check_output(curl_command, shell=True)
+output = startssl_request(params)
 
 if not "We have gathered enough information" in output:
     sys.exit("Error in fifth step: "+output)
@@ -122,18 +127,17 @@ if not "We have gathered enough information" in output:
 
 params = [('app',12), ('rs','sixth_step_certs'), ('rst',''),
             ('rsargs[]', cert_type), ('rsargs[]', token2)]
-curl_command = "curl -b \"$(cat startssl_cookie.txt)\" --data '%s' -s \"%s\"" % (urllib.urlencode(params), STARTSSL_BASEURI)
-output = subprocess.check_output(curl_command, shell=True)
+output = startssl_request(params)
 
 REQUEST_CERTIFICATE_CERT = re.compile('<textarea.*?>(?P<certificate>.*?)</textarea>')
 
 m = REQUEST_CERTIFICATE_CERT.search(output)
 if m:
     print "Success"
-    cert = m.group("certificate")
+    cert = m.group("certificate").replace("\\n", "\n")
 
     with open(cert_file, 'w') as outfile:
-    	outfile.write(cert)
+    	outfile.write(cert+"\n")
 else:
     sys.exit("Error in last step: "+output)
     

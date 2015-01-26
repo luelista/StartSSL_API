@@ -1,7 +1,11 @@
 #!/usr/bin/python
 import subprocess, re, datetime, json, os.path, sys
 
-execfile("config.py")
+scriptPath = os.path.dirname(os.path.realpath(sys.argv[0]))
+execfile(scriptPath+"/config.py")
+
+with open(scriptPath+'/startssl_cookie.txt', 'r') as infile:
+    cookie = infile.read()
 
 def main():
     if len(sys.argv) == 2 and sys.argv[1].isdigit():
@@ -30,14 +34,14 @@ def print_cert_list():
         print FORMAT.format(**cert)
 
 def download_cert(identifier):
-    fetch_command = "curl -b $(cat startssl_cookie.txt) -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -d 'rsargs[]=%s' -s \"%s\"" % (identifier, STARTSSL_BASEURI)
+    fetch_command = "curl -b \"%s\" -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -d 'rsargs[]=%s' -s \"%s\"" % (cookie, identifier, STARTSSL_BASEURI)
     output = subprocess.check_output(fetch_command, shell=True)
     
     REQUEST_CERTIFICATE_CERT = re.compile('<textarea.*?>(?P<certificate>.*?)</textarea>')
     
     m = REQUEST_CERTIFICATE_CERT.search(output)
     if m:
-        print m.group("certificate").replace("\\n", "\n")
+        cert = m.group("certificate").replace("\\n", "\n")
         
 
 
@@ -48,7 +52,7 @@ def update_cert_list():
 
     #curl -b $(cat startssl_cookie.txt) https://www.startssl.com -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -iv
 
-    auth_command = "curl -b $(cat startssl_cookie.txt) -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -s \"%s\"" % (STARTSSL_BASEURI)
+    auth_command = "curl -b \"%s\" -d app=12 -d rs=set_toolbox_item -d 'rsargs[]=crt' -s \"%s\"" % (cookie, STARTSSL_BASEURI)
     output = subprocess.check_output(auth_command, shell=True)
 
     items = RETRIEVE_CERTIFICATE_LIST.finditer(output)

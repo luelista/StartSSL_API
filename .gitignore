@@ -1,4 +1,6 @@
 startssl_cookie.txt
+client_key.p12
+client_key.pem
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

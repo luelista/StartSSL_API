@@ -1,9 +1,32 @@
 #!/usr/bin/python
-import subprocess, re, datetime, sys
+import subprocess, re, datetime, sys, os
 
-execfile("config.py")
+scriptPath = os.path.dirname(os.path.realpath(sys.argv[0]))
+execfile(scriptPath+"/config.py")
 
-if len(sys.argv) < 2 or len(sys.argv) > 3 or not re.match("^[a-z0-9-.]+\.[a-z]+", sys.argv[1]):
+with open(scriptPath+'/startssl_cookie.txt', 'r') as infile:
+    cookie = infile.read()
+
+if len(sys.argv) == 1:
+    VALIDATED_RESSOURCES = re.compile('<td nowrap>(?P<resource>.+?)</td><td nowrap> <img src="/img/yes-sm.png"></td>')
+    
+    retr_command = "curl -b \"%s\" -d app=12 -s \"%s\"" % (cookie, STARTSSL_BASEURI)
+    output = subprocess.check_output(retr_command, shell=True)
+    
+    if "Authenticate or Sign-up" in output:
+        sys.exit("Not authenticated")
+    
+    items = VALIDATED_RESSOURCES.findall(output)
+    if not items:
+        sys.exit("You either have no validated domains or an error occured")
+    for item in items:
+        print item
+    
+    
+    sys.exit()
+    
+
+if len(sys.argv) < 2 or len(sys.argv) > 3 or not re.match("^[a-z][a-z0-9-.]+\.[a-z]+", sys.argv[1]):
     if len(sys.argv) > 3: print "Invalid command line params\n"
     print "Usage: %s DOMAIN [TOKEN]" % sys.argv[0]
     print "   DOMAIN   the domain name to validate"
@@ -25,7 +48,7 @@ if len(sys.argv) == 2:
 
     DOMAIN_EMAILS = re.compile('name=\\\\"email\\\\" value=\\\\"([^\\\\]+)\\\\"')
 
-    second_command = "curl -b \"$(cat startssl_cookie.txt); mn=Hide; ex=false; ap=12\" -d rs=second_step_validation -d rst= -d 'rsargs[]=domain' -d 'rsargs[]=%s' -s \"%s\"" % (domain_to_validate, STARTSSL_BASEURI)
+    second_command = "curl -b \"%s; ap=12\" -d app=12 -d rs=second_step_validation -d rst= -d 'rsargs[]=domain' -d 'rsargs[]=%s' -s \"%s\"" % (cookie, domain_to_validate, STARTSSL_BASEURI)
     output = subprocess.check_output(second_command, shell=True)
 
     tokens = VALIDATION_TOKEN.search(output)
@@ -46,7 +69,7 @@ if len(sys.argv) == 2:
     address = mail_adrs[0]
     print "Using first address %s" % address
 
-    third_command = "curl -b \"$(cat startssl_cookie.txt); mn=Hide; ex=false; ap=12\" -d rs=third_step_validation -d rst= -d 'rsargs[]=%s' -d 'rsargs[]=%s' -d 'rsargs[]=%s' -s \"%s\"" % (val_type, token2, address, STARTSSL_BASEURI)
+    third_command = "curl -b \"%s; ap=12\" -d rs=third_step_validation -d rst= -d 'rsargs[]=%s' -d 'rsargs[]=%s' -d 'rsargs[]=%s' -s \"%s\"" % (cookie, val_type, token2, address, STARTSSL_BASEURI)
     output = subprocess.check_output(third_command, shell=True)
 
     if re.search("Error Sending Mail", output):
@@ -66,7 +89,7 @@ if len(sys.argv) == 3:
 
 code = raw_input("Validation Code from email: ")
 
-fourth_command = "curl -b \"$(cat startssl_cookie.txt); mn=Hide; ex=false; ap=12\" -d rs=fourth_step_validation -d rst= -d 'rsargs[]=%s' -d 'rsargs[]=%s' -d 'rsargs[]=%s' -s \"%s\"" % (val_type, token2, code, STARTSSL_BASEURI)
+fourth_command = "curl -b \"%s; ap=12\" -d rs=fourth_step_validation -d rst= -d 'rsargs[]=%s' -d 'rsargs[]=%s' -d 'rsargs[]=%s' -s \"%s\"" % (cookie, val_type, token2, code, STARTSSL_BASEURI)
 output = subprocess.check_output(fourth_command, shell=True)
 
 
