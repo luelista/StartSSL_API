@@ -1,0 +1,11 @@
+#!/bin/bash
+
+STARTSSL_API_PATH="/home/johannes/Arbeit/LauingerITSolutions/ssl/startssl/StartSSL_API/"
+PYTHON="/usr/bin/python2"
+
+COMMAND=$1
+EXECUTABLE=$STARTSSL_API_PATH"startssl_"$COMMAND".py"
+
+if [[ -e $EXECUTABLE ]]; then
+	$PYTHON $EXECUTABLE ${@:2}
+fi
