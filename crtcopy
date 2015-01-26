@@ -1,0 +1,28 @@
+#!/usr/bin/python
+# Copies a certificate and corresponding private key to clipboard, to be 
+# stored with the crtpaste tool on a server
+# 
+
+import re,sys,subprocess
+
+if len(sys.argv) < 2:
+	sys.exit("Please specify certificate nickname")
+
+nick = sys.argv[1]
+
+if len(sys.argv) == 2:
+	filelist = subprocess.check_output("ls -t %s_*.pem" % (nick), shell=True).splitlines()
+	datestamp = re.match(".*_([0-9]+)\.pem", filelist[0]).group(1)
+else:
+	datestamp = sys.argv[2]
+
+#print nick,datestamp
+
+clipboard_copy = ""
+if sys.platform == "darwin":
+    clipboard_copy = " | pbcopy"
+elif sys.platform == "linux" or sys.platform == "linux2":
+    clipboard_copy = " | xclip"
+
+subprocess.call("(echo \"{2:s}\"; cat {0:s}_cert_{1:s}.pem {0:s}_privatekey_{1:s}.pem; echo \"\\nDATENENDE\") {3}".format(nick,datestamp,"crtpaste <<DATENENDE\\nCERTDATA "+nick+" "+datestamp,clipboard_copy), shell=True)
+
