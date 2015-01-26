@@ -1,5 +1,5 @@
 
-CERTFILE = "client_key.pem:geheim"
+CERTFILE = "client_key.p12:geheim"
 
 # -------
 STARTSSL_BASEURI = "https://www.startssl.com"
