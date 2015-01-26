@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STARTSSL_API_PATH="/home/johannes/Arbeit/LauingerITSolutions/ssl/startssl/StartSSL_API/"
+STARTSSL_API_PATH="/path/to/StartSSL_API/"
 PYTHON="/usr/bin/python2"
 
 COMMAND=$1
